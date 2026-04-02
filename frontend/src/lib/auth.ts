@@ -24,6 +24,21 @@ async function parseJson(response: Response) {
   return data;
 }
 
+async function requestJson(input: string, init?: RequestInit) {
+  try {
+    const response = await fetch(input, init);
+    return parseJson(response);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        `Unable to reach the server at ${API_BASE_URL}. Check VITE_API_URL and make sure the backend is deployed with CORS enabled.`
+      );
+    }
+
+    throw error;
+  }
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -53,103 +68,83 @@ export async function registerWithEmail(payload: {
   email: string;
   password: string;
 }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+  return requestJson(`${API_BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function loginWithEmail(payload: { email: string; password: string }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  return requestJson(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function fetchCurrentUser() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+  return requestJson(`${API_BASE_URL}/api/auth/me`, {
     credentials: 'include',
-  });
-
-  return parseJson(response) as Promise<{ user: AuthUser }>;
+  }) as Promise<{ user: AuthUser }>;
 }
 
 export async function logoutUser() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+  return requestJson(`${API_BASE_URL}/api/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });
-
-  return parseJson(response);
 }
 
 export async function updateProfile(payload: { name: string; email: string; bio: string }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+  return requestJson(`${API_BASE_URL}/api/auth/profile`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function uploadAvatar(avatarDataUrl: string) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile/avatar`, {
+  return requestJson(`${API_BASE_URL}/api/auth/profile/avatar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ avatarDataUrl }),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function removeAvatar() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile/avatar`, {
+  return requestJson(`${API_BASE_URL}/api/auth/profile/avatar`, {
     method: 'DELETE',
     credentials: 'include',
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function changePassword(payload: { currentPassword: string; newPassword: string }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile/password`, {
+  return requestJson(`${API_BASE_URL}/api/auth/profile/password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function updateTwoFactor(enabled: boolean) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile/two-factor`, {
+  return requestJson(`${API_BASE_URL}/api/auth/profile/two-factor`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ enabled }),
-  });
-
-  return parseJson(response) as Promise<{ message: string; user: AuthUser }>;
+  }) as Promise<{ message: string; user: AuthUser }>;
 }
 
 export async function fetchActiveSessions() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/sessions`, {
+  return requestJson(`${API_BASE_URL}/api/auth/sessions`, {
     credentials: 'include',
-  });
-
-  return parseJson(response) as Promise<{ sessions: UserSession[] }>;
+  }) as Promise<{ sessions: UserSession[] }>;
 }
 
 export interface UploadActivityPayload {
@@ -164,22 +159,18 @@ export interface UploadActivityPayload {
 }
 
 export async function createUploadSession(payload: UploadActivityPayload) {
-  const response = await fetch(`${API_BASE_URL}/api/uploads`, {
+  return requestJson(`${API_BASE_URL}/api/uploads`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(payload),
-  });
-
-  return parseJson(response) as Promise<{ message: string; upload: UploadActivityPayload & { id: string } }>;
+  }) as Promise<{ message: string; upload: UploadActivityPayload & { id: string } }>;
 }
 
 export async function fetchUploadSessions() {
-  const response = await fetch(`${API_BASE_URL}/api/uploads`, {
+  return requestJson(`${API_BASE_URL}/api/uploads`, {
     credentials: 'include',
-  });
-
-  return parseJson(response) as Promise<{ uploads: Array<UploadActivityPayload & { id: string }> }>;
+  }) as Promise<{ uploads: Array<UploadActivityPayload & { id: string }> }>;
 }
 
 export function startGoogleLogin() {

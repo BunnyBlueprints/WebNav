@@ -31,6 +31,23 @@ function ensureProviderConfigured(providerName, isConfigured) {
   };
 }
 
+function authenticateOAuth(provider) {
+  return (req, res, next) => {
+    passport.authenticate(provider, { session: false }, (error, user) => {
+      if (error) {
+        return next(error);
+      }
+
+      if (!user) {
+        return res.redirect('/api/auth/oauth/failure');
+      }
+
+      req.user = user;
+      return next();
+    })(req, res, next);
+  };
+}
+
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', requireAuth, getCurrentUser);
@@ -48,24 +65,25 @@ router.get(
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     prompt: 'select_account',
+    session: false,
   })
 );
 router.get(
   '/google/callback',
   ensureProviderConfigured('Google', Boolean(env.googleClientId && env.googleClientSecret)),
-  passport.authenticate('google', { failureRedirect: '/api/auth/oauth/failure', session: false }),
+  authenticateOAuth('google'),
   handleOAuthSuccess
 );
 
 router.get(
   '/github',
   ensureProviderConfigured('GitHub', Boolean(env.githubClientId && env.githubClientSecret)),
-  passport.authenticate('github', { scope: ['user:email'] })
+  passport.authenticate('github', { scope: ['user:email'], session: false })
 );
 router.get(
   '/github/callback',
   ensureProviderConfigured('GitHub', Boolean(env.githubClientId && env.githubClientSecret)),
-  passport.authenticate('github', { failureRedirect: '/api/auth/oauth/failure', session: false }),
+  authenticateOAuth('github'),
   handleOAuthSuccess
 );
 

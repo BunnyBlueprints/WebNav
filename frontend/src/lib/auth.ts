@@ -1,4 +1,18 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+function getApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:4000';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function parseJson(response: Response) {
   const data = await response.json().catch(() => ({}));

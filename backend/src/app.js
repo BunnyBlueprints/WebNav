@@ -13,9 +13,17 @@ configurePassport();
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin(origin, callback) {
+      if (!origin || env.allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+    },
     credentials: true,
   })
 );
@@ -26,9 +34,11 @@ app.use(
     secret: env.sessionSecret,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-      secure: env.nodeEnv === 'production',
-      sameSite: 'lax',
+      secure: env.cookieSecure,
+      sameSite: env.cookieSameSite,
+      ...(env.cookieDomain ? { domain: env.cookieDomain } : {}),
     },
   })
 );

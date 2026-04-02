@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import { clearAuthCookie, setAuthCookie } from '../utils/tokens.js';
+import { verifyAuthToken } from '../utils/tokens.js';
 
 function normalizeEmail(email) {
   return String(email).trim().toLowerCase();
@@ -112,17 +113,28 @@ export async function getCurrentUser(req, res) {
   });
 }
 
-export function logout(req, res) {
-  if (req.user && req.auth?.sessionId) {
-    req.user.activeSessions = (req.user.activeSessions || []).filter(
-      (session) => session.sessionId !== req.auth.sessionId
-    );
-    req.user.save().catch(() => {});
+export async function logout(req, res) {
+  const token = req.cookies?.webnav_token;
+
+  if (token) {
+    try {
+      const payload = verifyAuthToken(token);
+      const user = await User.findById(payload.sub);
+
+      if (user) {
+        user.activeSessions = (user.activeSessions || []).filter(
+          (session) => session.sessionId !== payload.sid
+        );
+        await user.save();
+      }
+    } catch {
+      // Always clear the cookie even when the token is already invalid.
+    }
   }
 
   clearAuthCookie(res);
-
   req.logout?.(() => {});
+  req.session?.destroy(() => {});
 
   return res.status(200).json({ message: 'Signed out successfully.' });
 }

@@ -34,7 +34,7 @@ function ensureProviderConfigured(providerName, isConfigured) {
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', requireAuth, getCurrentUser);
-router.post('/logout', requireAuth, logout);
+router.post('/logout', logout);
 router.put('/profile', requireAuth, updateProfile);
 router.post('/profile/avatar', requireAuth, uploadAvatar);
 router.delete('/profile/avatar', requireAuth, removeAvatar);
@@ -45,7 +45,10 @@ router.get('/sessions', requireAuth, getActiveSessions);
 router.get(
   '/google',
   ensureProviderConfigured('Google', Boolean(env.googleClientId && env.googleClientSecret)),
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    prompt: 'select_account',
+  })
 );
 router.get(
   '/google/callback',

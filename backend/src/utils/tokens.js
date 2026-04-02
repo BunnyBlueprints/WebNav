@@ -20,13 +20,18 @@ export function verifyAuthToken(token) {
   return jwt.verify(token, env.jwtSecret);
 }
 
-export function setAuthCookie(res, userId, sessionId) {
+export function setAuthCookie(res, userId, sessionId, remember = true) {
   const token = signAuthToken(userId, sessionId);
 
-  res.cookie('webnav_token', token, {
+  const cookieOptions = {
     ...getCookieOptions(),
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  };
+
+  if (remember) {
+    cookieOptions.maxAge = 7 * 24 * 60 * 60 * 1000;
+  }
+
+  res.cookie('webnav_token', token, cookieOptions);
 }
 
 export function clearAuthCookie(res) {

@@ -76,7 +76,7 @@ export async function registerWithEmail(payload: {
   }) as Promise<{ message: string; user: AuthUser }>;
 }
 
-export async function loginWithEmail(payload: { email: string; password: string }) {
+export async function loginWithEmail(payload: { email: string; password: string; remember: boolean }) {
   return requestJson(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

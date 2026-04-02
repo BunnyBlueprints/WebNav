@@ -99,7 +99,7 @@ export default function App() {
       .catch(() => {});
   }, [currentUser]);
 
-  const handleEmailLogin = async (payload: { email: string; password: string }) => {
+  const handleEmailLogin = async (payload: { email: string; password: string; remember: boolean }) => {
     const { user } = await loginWithEmail(payload);
     setCurrentUser(user);
     setView('dashboard');

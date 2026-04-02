@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { motion } from 'motion/react';
 
 interface LoginScreenProps {
-  onLogin: (payload: { email: string; password: string }) => Promise<void>;
+  onLogin: (payload: { email: string; password: string; remember: boolean }) => Promise<void>;
   onCreateAccount: () => void;
   onBack: () => void;
   onGoogleLogin: () => void;
@@ -32,6 +32,7 @@ export default function LoginScreen({
       await onLogin({
         email: String(formData.get('email') ?? ''),
         password: String(formData.get('password') ?? ''),
+        remember: formData.get('remember') === 'on',
       });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to sign in.');
@@ -129,6 +130,7 @@ export default function LoginScreen({
                 <div className="flex items-center px-1">
                   <input
                     className="h-4 w-4 rounded border-slate-300 bg-white text-primary focus:ring-2 focus:ring-[#dce8fb] focus:ring-offset-0"
+                    defaultChecked
                     id="remember"
                     name="remember"
                     type="checkbox"

@@ -76,7 +76,7 @@ export async function register(req, res) {
 }
 
 export async function login(req, res) {
-  const { email, password } = req.body;
+  const { email, password, remember } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required.' });
@@ -99,7 +99,7 @@ export async function login(req, res) {
   const session = attachSessionToUser(user, req);
   await user.save();
 
-  setAuthCookie(res, user._id.toString(), session.sessionId);
+  setAuthCookie(res, user._id.toString(), session.sessionId, Boolean(remember));
 
   return res.status(200).json({
     message: 'Signed in successfully.',

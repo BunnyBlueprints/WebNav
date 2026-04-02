@@ -15,14 +15,20 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+function normalizeOrigin(origin) {
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || env.allowedOrigins.includes(origin)) {
+      const normalizedOrigin = normalizeOrigin(origin);
+
+      if (!origin || env.allowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
 
-      return callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+      return callback(new Error(`Origin ${normalizedOrigin} is not allowed by CORS.`));
     },
     credentials: true,
   })

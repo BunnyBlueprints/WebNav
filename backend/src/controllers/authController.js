@@ -140,15 +140,24 @@ export async function logout(req, res) {
 }
 
 export async function handleOAuthSuccess(req, res) {
-  const user = req.user;
+  try {
+    const user = req.user;
 
-  user.lastLoginAt = new Date();
-  const session = attachSessionToUser(user, req);
-  await user.save();
+    if (!user) {
+      return res.redirect(`${env.frontendUrl}?auth=error`);
+    }
 
-  setAuthCookie(res, user._id.toString(), session.sessionId);
+    user.lastLoginAt = new Date();
+    const session = attachSessionToUser(user, req);
+    await user.save();
 
-  return res.redirect(`${env.frontendUrl}?auth=success`);
+    setAuthCookie(res, user._id.toString(), session.sessionId);
+
+    return res.redirect(`${env.frontendUrl}?auth=success`);
+  } catch (error) {
+    console.error('OAuth success handler error:', error);
+    return res.redirect(`${env.frontendUrl}?auth=error`);
+  }
 }
 
 export function handleOAuthFailure(_req, res) {

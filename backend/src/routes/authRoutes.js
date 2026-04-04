@@ -19,6 +19,12 @@ import { env } from '../config/env.js';
 
 const router = Router();
 
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 function ensureProviderConfigured(providerName, isConfigured) {
   return (_req, res, next) => {
     if (!isConfigured) {
@@ -33,31 +39,38 @@ function ensureProviderConfigured(providerName, isConfigured) {
 
 function authenticateOAuth(provider) {
   return (req, res, next) => {
-    passport.authenticate(provider, { session: false }, (error, user) => {
-      if (error) {
-        return next(error);
-      }
+    passport.authenticate(provider, { session: false }, (error, user, info) => {
+      try {
+        if (error) {
+          console.error(`OAuth ${provider} authentication error:`, error);
+          return res.redirect(`${env.frontendUrl}?auth=error`);
+        }
 
-      if (!user) {
-        return res.redirect('/api/auth/oauth/failure');
-      }
+        if (!user) {
+          console.warn(`OAuth ${provider} authentication failed: no user returned`);
+          return res.redirect(`${env.frontendUrl}?auth=error`);
+        }
 
-      req.user = user;
-      return next();
+        req.user = user;
+        return next();
+      } catch (err) {
+        console.error(`OAuth ${provider} middleware error:`, err);
+        return res.redirect(`${env.frontendUrl}?auth=error`);
+      }
     })(req, res, next);
   };
 }
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/me', requireAuth, getCurrentUser);
-router.post('/logout', logout);
-router.put('/profile', requireAuth, updateProfile);
-router.post('/profile/avatar', requireAuth, uploadAvatar);
-router.delete('/profile/avatar', requireAuth, removeAvatar);
-router.post('/profile/password', requireAuth, changePassword);
-router.post('/profile/two-factor', requireAuth, updateTwoFactor);
-router.get('/sessions', requireAuth, getActiveSessions);
+router.post('/register', asyncHandler(register));
+router.post('/login', asyncHandler(login));
+router.get('/me', requireAuth, asyncHandler(getCurrentUser));
+router.post('/logout', asyncHandler(logout));
+router.put('/profile', requireAuth, asyncHandler(updateProfile));
+router.post('/profile/avatar', requireAuth, asyncHandler(uploadAvatar));
+router.delete('/profile/avatar', requireAuth, asyncHandler(removeAvatar));
+router.post('/profile/password', requireAuth, asyncHandler(changePassword));
+router.post('/profile/two-factor', requireAuth, asyncHandler(updateTwoFactor));
+router.get('/sessions', requireAuth, asyncHandler(getActiveSessions));
 
 router.get(
   '/google',
@@ -72,7 +85,7 @@ router.get(
   '/google/callback',
   ensureProviderConfigured('Google', Boolean(env.googleClientId && env.googleClientSecret)),
   authenticateOAuth('google'),
-  handleOAuthSuccess
+  asyncHandler(handleOAuthSuccess)
 );
 
 router.get(
@@ -84,9 +97,9 @@ router.get(
   '/github/callback',
   ensureProviderConfigured('GitHub', Boolean(env.githubClientId && env.githubClientSecret)),
   authenticateOAuth('github'),
-  handleOAuthSuccess
+  asyncHandler(handleOAuthSuccess)
 );
 
-router.get('/oauth/failure', handleOAuthFailure);
+router.get('/oauth/failure', asyncHandler(handleOAuthFailure));
 
 export default router;

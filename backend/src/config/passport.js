@@ -11,43 +11,49 @@ async function upsertOAuthUser({
   name,
   avatarUrl,
 }) {
-  const providerField = provider === 'google' ? 'providers.googleId' : 'providers.githubId';
+  try {
+    const providerField = provider === 'google' ? 'providers.googleId' : 'providers.githubId';
 
-  let user = await User.findOne({ [providerField]: providerId });
+    let user = await User.findOne({ [providerField]: providerId });
 
-  if (user) {
-    if (avatarUrl && !user.avatarUrl) {
-      user.avatarUrl = avatarUrl;
-      await user.save();
+    if (user) {
+      if (avatarUrl && !user.avatarUrl) {
+        user.avatarUrl = avatarUrl;
+        await user.save();
+      }
+
+      return user;
     }
 
+    if (email) {
+      user = await User.findOne({ email: email.toLowerCase() });
+    }
+
+    if (!user) {
+      user = await User.create({
+        name: name || email?.split('@')[0] || 'WebNav User',
+        email: email?.toLowerCase() ?? `${provider}_${providerId}@webnav.local`,
+        avatarUrl: avatarUrl ?? '',
+        providers: provider === 'google' ? { googleId: providerId } : { githubId: providerId },
+      });
+
+      return user;
+    }
+
+    user.name = user.name || name;
+    user.avatarUrl = user.avatarUrl || avatarUrl || '';
+    user.providers = user.providers || {};
+    user.providers.googleId =
+      provider === 'google' ? providerId : user.providers?.googleId ?? null;
+    user.providers.githubId =
+      provider === 'github' ? providerId : user.providers?.githubId ?? null;
+    await user.save();
+
     return user;
+  } catch (error) {
+    console.error(`Error upserting OAuth user (${provider}):`, error);
+    throw error;
   }
-
-  if (email) {
-    user = await User.findOne({ email: email.toLowerCase() });
-  }
-
-  if (!user) {
-    user = await User.create({
-      name: name || email?.split('@')[0] || 'WebNav User',
-      email: email?.toLowerCase() ?? `${provider}_${providerId}@webnav.local`,
-      avatarUrl: avatarUrl ?? '',
-      providers: provider === 'google' ? { googleId: providerId } : { githubId: providerId },
-    });
-
-    return user;
-  }
-
-  user.name = user.name || name;
-  user.avatarUrl = user.avatarUrl || avatarUrl || '';
-  user.providers.googleId =
-    provider === 'google' ? providerId : user.providers?.googleId ?? null;
-  user.providers.githubId =
-    provider === 'github' ? providerId : user.providers?.githubId ?? null;
-  await user.save();
-
-  return user;
 }
 
 export function configurePassport() {
@@ -86,6 +92,7 @@ export function configurePassport() {
 
             done(null, user);
           } catch (error) {
+            console.error('Google OAuth error:', error);
             done(error, null);
           }
         }
@@ -117,6 +124,7 @@ export function configurePassport() {
 
             done(null, user);
           } catch (error) {
+            console.error('GitHub OAuth error:', error);
             done(error, null);
           }
         }

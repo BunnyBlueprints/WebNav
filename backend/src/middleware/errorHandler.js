@@ -3,9 +3,16 @@ export function notFoundHandler(_req, res) {
 }
 
 export function errorHandler(error, _req, res, _next) {
-  console.error(error);
+  const statusCode = error.statusCode ?? error.status ?? 500;
+  const message = error.message ?? 'Something went wrong.';
 
-  return res.status(error.statusCode ?? 500).json({
-    message: error.message ?? 'Something went wrong.',
+  console.error(`[${statusCode}] Error:`, message, error);
+
+  if (res.headersSent) {
+    return;
+  }
+
+  return res.status(statusCode).json({
+    message,
   });
 }

@@ -46,3 +46,39 @@ export async function listUploadSessions(req, res) {
     uploads: uploads.map((upload) => upload.toClientObject()),
   });
 }
+
+export async function getUploadSession(req, res) {
+  const { id } = req.params;
+
+  if (!id || id.length !== 24) {
+    return res.status(400).json({ message: 'Invalid session ID.' });
+  }
+
+  const upload = await UploadSession.findOne({ _id: id, userId: req.user._id });
+
+  if (!upload) {
+    return res.status(404).json({ message: 'Upload session not found.' });
+  }
+
+  return res.status(200).json({
+    upload: upload.toClientObject(),
+  });
+}
+
+export async function deleteUploadSession(req, res) {
+  const { id } = req.params;
+
+  if (!id || id.length !== 24) {
+    return res.status(400).json({ message: 'Invalid session ID.' });
+  }
+
+  const upload = await UploadSession.findOneAndDelete({ _id: id, userId: req.user._id });
+
+  if (!upload) {
+    return res.status(404).json({ message: 'Upload session not found.' });
+  }
+
+  return res.status(200).json({
+    message: 'Upload session deleted successfully.',
+  });
+}

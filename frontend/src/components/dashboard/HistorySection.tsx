@@ -16,11 +16,13 @@ import {
   Trash2,
   Link as LinkIcon,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { Session } from '../types';
 
 interface HistorySectionProps {
   darkMode?: boolean;
   sessions?: Session[];
+  onSessionUpdate?: () => void;
 }
 
 const defaultSessions: Session[] = [
@@ -50,7 +52,9 @@ const defaultSessions: Session[] = [
   },
 ];
 
-function SessionCard({ session, darkMode = false }: { session: Session; darkMode?: boolean }) {
+function SessionCard({ session, darkMode = false, onDelete, onOpen }: { session: Session; darkMode?: boolean; onDelete: (id: string) => void; onOpen: (id: string) => void }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const statusConfig = {
     COMPLETED: {
       dot: 'bg-emerald-500',
@@ -78,6 +82,58 @@ function SessionCard({ session, darkMode = false }: { session: Session; darkMode
   const config = statusConfig[session.status];
   const Icon = config.icon;
   const ActionIcon = config.actionIcon;
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this session?')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/uploads/${session.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
+        setIsDeleting(false);
+        return;
+      }
+
+      onDelete(session.id);
+    } catch (error) {
+      alert(`Error deleting session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsDeleting(false);
+    }
+  };
+
+  const handleOpen = async () => {
+    try {
+      const response = await fetch(`/api/uploads/${session.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
+        return;
+      }
+
+      const data = await response.json();
+      onOpen(session.id);
+      // You can trigger download or further actions here
+      console.log('Session data:', data);
+    } catch (error) {
+      alert(`Error opening session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   return (
     <article
@@ -119,6 +175,7 @@ function SessionCard({ session, darkMode = false }: { session: Session; darkMode
                 : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'
             }`}
             type="button"
+            onClick={handleOpen}
           >
             <ActionIcon className="h-4 w-4" />
             {config.actionLabel}
@@ -130,10 +187,17 @@ function SessionCard({ session, darkMode = false }: { session: Session; darkMode
                 : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
             }`}
             type="button"
+            title="Session information"
           >
             <Info className="h-4 w-4" />
           </button>
-          <button className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600" type="button">
+          <button
+            className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            title="Delete session"
+          >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -169,7 +233,20 @@ function FilterSelect({
   );
 }
 
-export default function HistorySection({ darkMode = false, sessions = defaultSessions }: HistorySectionProps) {
+export default function HistorySection({ darkMode = false, sessions = defaultSessions, onSessionUpdate }: HistorySectionProps) {
+  const [sessionList, setSessionList] = useState(sessions);
+
+  const handleDelete = (id: string) => {
+    setSessionList(sessionList.filter((s) => s.id !== id));
+    onSessionUpdate?.();
+  };
+
+  const handleOpen = (id: string) => {
+    // You can trigger additional actions here if needed
+    console.log('Opening session:', id);
+    onSessionUpdate?.();
+  };
+
   return (
     <section
       id="history"
@@ -223,8 +300,8 @@ export default function HistorySection({ darkMode = false, sessions = defaultSes
       </div>
 
       <div className="space-y-4">
-        {sessions.map((session) => (
-          <SessionCard darkMode={darkMode} key={session.id} session={session} />
+        {sessionList.map((session) => (
+          <SessionCard darkMode={darkMode} key={session.id} session={session} onDelete={handleDelete} onOpen={handleOpen} />
         ))}
       </div>
 
@@ -233,7 +310,7 @@ export default function HistorySection({ darkMode = false, sessions = defaultSes
           darkMode ? 'border-slate-800' : 'border-slate-200'
         }`}
       >
-        <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Showing 3 of 42 sessions</p>
+        <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Showing {sessionList.length} sessions</p>
         <div className="flex items-center gap-2 self-start md:self-auto">
           <button
             className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm ${
